@@ -267,6 +267,30 @@ try {
     $exportedFiles = Export-Report @exportParams
     Write-Log -Message "レポート出力完了: $($exportedFiles.Count)ファイル" -Level Info -LogFile $script:LogFile
     
+    # 古いレポートのクリーンアップ
+    Write-Host ""
+    try {
+        $outDir = if ($OutputDirectory) {
+            $OutputDirectory
+        } else {
+            $config.report.outputDirectory
+        }
+        
+        Remove-OldReports -OutputDirectory $outDir -Config $config
+    } catch {
+        Write-Warning "レポートクリーンアップ中にエラーが発生しました: $($_.Exception.Message)"
+    }
+    
+    # 古いログのクリーンアップ
+    if ($script:LogFile) {
+        try {
+            $logDir = Split-Path $script:LogFile -Parent
+            Remove-OldLogs -LogDirectory $logDir -Config $config
+        } catch {
+            Write-Warning "ログクリーンアップ中にエラーが発生しました: $($_.Exception.Message)"
+        }
+    }
+    
     # メール送信
     if ($config.email -and $config.email.enabled) {
         Write-Host ""

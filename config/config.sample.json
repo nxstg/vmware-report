@@ -30,6 +30,11 @@
     ],
     "outputDirectory": "./reports",
     "includeTimestamp": true,
+    "retention": {
+      "enabled": true,
+      "days": 30,
+      "maxGenerations": 50
+    },
     "thresholds": {
       "cpu": {
         "warning": 80,
