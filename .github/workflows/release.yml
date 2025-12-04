@@ -1,0 +1,113 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get version from tag
+      id: get_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # 前回のタグを取得
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [ -z "$PREVIOUS_TAG" ]; then
+          # 初回リリースの場合は全コミットを含める
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+        else
+          # 前回のタグから現在までの変更を取得
+          CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+        fi
+        
+        # マルチライン対応
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Create Release Archive
+      run: |
+        mkdir -p release-assets
+        
+        # メインファイルをアーカイブ
+        zip -r release-assets/vmware-report-${{ steps.get_version.outputs.version_number }}.zip \
+          vmware-report.ps1 \
+          modules/ \
+          config/*.json \
+          LICENSE \
+          README.md \
+          -x "*.git*" \
+          -x "*node_modules*" \
+          -x "*.DS_Store"
+        
+        # SHA256チェックサムを生成
+        cd release-assets
+        sha256sum vmware-report-${{ steps.get_version.outputs.version_number }}.zip > checksums.txt
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ steps.get_version.outputs.version }}
+        body: |
+          ## VMware Report Generator ${{ steps.get_version.outputs.version }}
+          
+          ### 📦 インストール方法
+          
+          1. ZIPファイルをダウンロード
+          2. 任意のディレクトリに展開
+          3. PowerShellで実行:
+             ```powershell
+             ./vmware-report.ps1
+             ```
+          
+          ### 📋 必要要件
+          
+          - PowerShell 5.1 以上
+          - VMware PowerCLI モジュール
+          - vCenter Server へのアクセス権限
+          
+          ### 📝 変更内容
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ### 🔐 チェックサム (SHA256)
+          
+          ダウンロードしたファイルの整合性を確認してください:
+          ```
+          sha256sum vmware-report-${{ steps.get_version.outputs.version_number }}.zip
+          ```
+          
+          詳細は [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) をご覧ください。
+        draft: false
+        prerelease: false
+        files: |
+          release-assets/vmware-report-${{ steps.get_version.outputs.version_number }}.zip
+          release-assets/checksums.txt
+        generate_release_notes: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Notify release completion
+      if: success()
+      run: |
+        echo "✅ Release ${{ steps.get_version.outputs.version }} has been created successfully!"
+        echo "📦 Download: https://github.com/${{ github.repository }}/releases/tag/${{ steps.get_version.outputs.version }}"

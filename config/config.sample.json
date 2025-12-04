@@ -1,0 +1,78 @@
+{
+  "description": "VMware Daily Report - Sample Configuration (Copy to config.json and edit)",
+  "vcenter": {
+    "server": "vcenter.example.com",
+    "timeout": 300,
+    "retryAttempts": 3,
+    "retryDelaySeconds": 5
+  },
+  "authentication": {
+    "method": "environment",
+    "environmentVariables": {
+      "server": "VCENTER_SERVER",
+      "username": "VCENTER_USERNAME",
+      "password": "VCENTER_PASSWORD"
+    }
+  },
+  "report": {
+    "sections": [
+      "cpu",
+      "memory",
+      "datastore",
+      "vm",
+      "cluster",
+      "host"
+    ],
+    "outputFormats": [
+      "json",
+      "html",
+      "csv"
+    ],
+    "outputDirectory": "./reports",
+    "includeTimestamp": true,
+    "thresholds": {
+      "cpu": {
+        "warning": 80,
+        "critical": 90
+      },
+      "memory": {
+        "warning": 85,
+        "critical": 95
+      },
+      "datastore": {
+        "warning": 80,
+        "critical": 90
+      }
+    }
+  },
+  "performance": {
+    "enableParallelProcessing": true,
+    "maxParallelThreads": 5,
+    "enableCaching": false
+  },
+  "logging": {
+    "enabled": true,
+    "level": "Info",
+    "logDirectory": "./logs",
+    "retentionDays": 30
+  },
+  "email": {
+    "enabled": true,
+    "smtpServer": "smtp.example.com",
+    "smtpPort": 587,
+    "encryptionType": "StartTLS",
+    "useAuthentication": true,
+    "username": "report@example.com",
+    "password": "",
+    "from": "vmware-report@example.com",
+    "to": [
+      "admin@example.com",
+      "team@example.com"
+    ],
+    "cc": [],
+    "bcc": [],
+    "subject": "VMware Daily Report - {ServerName} ({Date})",
+    "includeHtmlInBody": true,
+    "attachReports": false
+  }
+}

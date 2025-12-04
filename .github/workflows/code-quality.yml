@@ -1,0 +1,143 @@
+name: Code Quality Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  powershell-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install PowerShell modules
+      shell: pwsh
+      run: |
+        Set-PSRepository PSGallery -InstallationPolicy Trusted
+        Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+        Install-Module -Name Pester -Force -Scope CurrentUser -SkipPublisherCheck
+        
+        # VCF.PowerCLI または VMware.PowerCLI をインストール
+        if (Find-Module -Name VCF.PowerCLI -ErrorAction SilentlyContinue) {
+          Install-Module -Name VCF.PowerCLI -Force -Scope CurrentUser
+          Write-Host "✓ VCF.PowerCLI をインストールしました"
+        } else {
+          Install-Module -Name VMware.PowerCLI -Force -Scope CurrentUser
+          Write-Host "✓ VMware.PowerCLI をインストールしました"
+        }
+    
+    - name: Run PSScriptAnalyzer
+      shell: pwsh
+      run: |
+        Write-Host "Running PSScriptAnalyzer..."
+        $results = Invoke-ScriptAnalyzer -Path . -Recurse -Settings PSGallery
+        
+        if ($results) {
+          Write-Host "PSScriptAnalyzer found $($results.Count) issues:"
+          $results | Format-Table -AutoSize
+          
+          $errors = $results | Where-Object { $_.Severity -eq 'Error' }
+          if ($errors) {
+            Write-Error "Found $($errors.Count) error(s). Build failed."
+            exit 1
+          }
+          
+          $warnings = $results | Where-Object { $_.Severity -eq 'Warning' }
+          if ($warnings) {
+            Write-Warning "Found $($warnings.Count) warning(s)."
+          }
+        } else {
+          Write-Host "✅ No issues found!"
+        }
+    
+    - name: Check PowerShell syntax
+      shell: pwsh
+      run: |
+        Write-Host "Checking PowerShell syntax..."
+        $files = Get-ChildItem -Path . -Include *.ps1,*.psm1 -Recurse
+        $errors = @()
+        
+        foreach ($file in $files) {
+          try {
+            $null = [System.Management.Automation.Language.Parser]::ParseFile(
+              $file.FullName,
+              [ref]$null,
+              [ref]$null
+            )
+            Write-Host "✅ $($file.Name)"
+          } catch {
+            Write-Error "❌ $($file.Name): $($_.Exception.Message)"
+            $errors += $file.Name
+          }
+        }
+        
+        if ($errors.Count -gt 0) {
+          Write-Error "Syntax errors found in $($errors.Count) file(s)"
+          exit 1
+        }
+    
+    - name: Validate JSON files
+      shell: pwsh
+      run: |
+        Write-Host "Validating JSON configuration files..."
+        $jsonFiles = Get-ChildItem -Path config -Filter *.json
+        $errors = @()
+        
+        foreach ($file in $jsonFiles) {
+          try {
+            $null = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json
+            Write-Host "✅ $($file.Name)"
+          } catch {
+            Write-Error "❌ $($file.Name): $($_.Exception.Message)"
+            $errors += $file.Name
+          }
+        }
+        
+        if ($errors.Count -gt 0) {
+          Write-Error "JSON validation failed for $($errors.Count) file(s)"
+          exit 1
+        }
+
+  pester-tests:
+    runs-on: ubuntu-latest
+    if: false  # テストファイルが作成されたら有効化
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      shell: pwsh
+      run: |
+        Set-PSRepository PSGallery -InstallationPolicy Trusted
+        Install-Module -Name Pester -Force -Scope CurrentUser -SkipPublisherCheck
+        Install-Module -Name VMware.PowerCLI -Force -Scope CurrentUser
+    
+    - name: Run Pester tests
+      shell: pwsh
+      run: |
+        Write-Host "Running Pester tests..."
+        $config = New-PesterConfiguration
+        $config.Run.Path = './tests'
+        $config.Run.PassThru = $true
+        $config.CodeCoverage.Enabled = $true
+        $config.TestResult.Enabled = $true
+        $config.TestResult.OutputPath = 'test-results.xml'
+        
+        $result = Invoke-Pester -Configuration $config
+        
+        if ($result.FailedCount -gt 0) {
+          Write-Error "Tests failed: $($result.FailedCount) test(s) failed"
+          exit 1
+        }
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: test-results.xml

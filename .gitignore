@@ -1,0 +1,54 @@
+# ログファイル
+logs/*
+!logs/.gitkeep
+
+# レポートファイル
+reports/*
+!reports/.gitkeep
+
+# 設定ファイル（実際の設定ファイルは除外、サンプルファイルは含める）
+config/config.json
+config/*-config.json
+!config/default-config.json
+!config/*.sample.json
+
+# PowerShell関連
+*.ps1xml
+*.pssc
+*.psd1.bak
+
+# 認証情報・機密情報
+*.credentials
+*.secret
+**/secrets/
+.env
+.env.local
+
+# OS関連
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# エディタ関連
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# 一時ファイル
+*.tmp
+*.temp
+*.log
+*.bak
+*.old
+
+# Windows関連
+$RECYCLE.BIN/
+*.lnk

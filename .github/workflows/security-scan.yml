@@ -1,0 +1,106 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 毎週月曜日 9:00 (UTC) に実行
+    - cron: '0 9 * * 1'
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Check for secrets in code
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event.before }}
+        head: ${{ github.sha }}
+    
+    - name: Check PowerShell module versions
+      shell: pwsh
+      run: |
+        Write-Host "Checking PowerShell module dependencies..."
+        
+        # VMware.PowerCLIの最新バージョンを確認
+        Write-Host "`nVMware.PowerCLI:"
+        $availableVersions = Find-Module -Name VMware.PowerCLI -AllVersions | Select-Object -First 5
+        $availableVersions | Format-Table Name, Version, PublishedDate
+        
+        # PSScriptAnalyzerの最新バージョンを確認
+        Write-Host "`nPSScriptAnalyzer:"
+        $availableVersions = Find-Module -Name PSScriptAnalyzer -AllVersions | Select-Object -First 5
+        $availableVersions | Format-Table Name, Version, PublishedDate
+    
+    - name: Scan for common vulnerabilities
+      shell: pwsh
+      run: |
+        Write-Host "Scanning for common security issues..."
+        
+        $issues = @()
+        
+        # ハードコードされた認証情報のチェック
+        Write-Host "`nChecking for hardcoded credentials..."
+        $patterns = @(
+          'password\s*=\s*[''"](?!.*example|.*placeholder)[^''"]{8,}[''"]',
+          'api[_-]?key\s*=\s*[''"][^''"]+[''"]',
+          'secret\s*=\s*[''"][^''"]+[''"]',
+          'token\s*=\s*[''"][^''"]+[''"]'
+        )
+        
+        $files = Get-ChildItem -Path . -Include *.ps1,*.psm1,*.json -Recurse | Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' }
+        
+        foreach ($file in $files) {
+          $content = Get-Content -Path $file.FullName -Raw
+          foreach ($pattern in $patterns) {
+            if ($content -match $pattern) {
+              $issues += "⚠️  Potential credential found in: $($file.FullName)"
+            }
+          }
+        }
+        
+        # 安全でない関数の使用チェック
+        Write-Host "`nChecking for unsafe function usage..."
+        $unsafeFunctions = @(
+          'ConvertTo-SecureString.*-AsPlainText.*-Force',
+          'Invoke-Expression',
+          'Invoke-Command.*-ScriptBlock.*\$'
+        )
+        
+        foreach ($file in $files) {
+          $content = Get-Content -Path $file.FullName -Raw
+          foreach ($pattern in $unsafeFunctions) {
+            if ($content -match $pattern) {
+              Write-Host "ℹ️  Usage of potentially unsafe function in: $($file.FullName)"
+            }
+          }
+        }
+        
+        if ($issues.Count -gt 0) {
+          Write-Host "`n❌ Security issues found:"
+          $issues | ForEach-Object { Write-Host $_ }
+          Write-Warning "Please review these potential security issues"
+        } else {
+          Write-Host "`n✅ No obvious security issues found"
+        }
+
+  markdown-link-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Check Markdown links
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        config-file: '.github/workflows/markdown-link-check-config.json'
+        check-modified-files-only: 'no'

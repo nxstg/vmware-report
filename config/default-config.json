@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "VMware Daily Report - Default Configuration",
+  "vcenter": {
+    "server": "",
+    "timeout": 300,
+    "retryAttempts": 3,
+    "retryDelaySeconds": 5
+  },
+  "authentication": {
+    "method": "environment",
+    "environmentVariables": {
+      "server": "VCENTER_SERVER",
+      "username": "VCENTER_USERNAME",
+      "password": "VCENTER_PASSWORD"
+    }
+  },
+  "report": {
+    "sections": [
+      "cpu",
+      "memory",
+      "datastore",
+      "vm",
+      "cluster",
+      "host"
+    ],
+    "outputFormats": [
+      "json",
+      "html"
+    ],
+    "outputDirectory": "./reports",
+    "includeTimestamp": true,
+    "thresholds": {
+      "cpu": {
+        "warning": 80,
+        "critical": 90
+      },
+      "memory": {
+        "warning": 85,
+        "critical": 95
+      },
+      "datastore": {
+        "warning": 80,
+        "critical": 90
+      }
+    }
+  },
+  "performance": {
+    "enableParallelProcessing": true,
+    "maxParallelThreads": 5,
+    "enableCaching": false
+  },
+  "logging": {
+    "enabled": true,
+    "level": "Info",
+    "logDirectory": "./logs",
+    "retentionDays": 30
+  },
+  "email": {
+    "enabled": false,
+    "smtpServer": "",
+    "smtpPort": 587,
+    "encryptionType": "StartTLS",
+    "useAuthentication": true,
+    "username": "",
+    "password": "",
+    "from": "",
+    "to": [],
+    "cc": [],
+    "bcc": [],
+    "subject": "VMware Daily Report - {ServerName} ({Date})",
+    "includeHtmlInBody": true,
+    "attachReports": false
+  }
+}
