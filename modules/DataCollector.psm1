@@ -483,6 +483,9 @@ function Invoke-DataCollection {
     
     .PARAMETER Sections
         収集するセクション（オプション、設定ファイルより優先）
+    
+    .PARAMETER ScriptVersion
+        スクリプトのバージョン
     #>
     [CmdletBinding()]
     param(
@@ -493,7 +496,10 @@ function Invoke-DataCollection {
         [PSCustomObject]$Config,
         
         [Parameter(Mandatory = $false)]
-        [string[]]$Sections
+        [string[]]$Sections,
+        
+        [Parameter(Mandatory = $false)]
+        [string]$ScriptVersion = "1.0.0"
     )
     
     $startTime = Get-Date
@@ -512,6 +518,7 @@ function Invoke-DataCollection {
             Server = $ConnectionInfo.Server
             VCenterVersion = $ConnectionInfo.Version
             VCenterBuild = $ConnectionInfo.Build
+            ScriptVersion = $ScriptVersion
             Sections = $sectionsToCollect
         }
     }
