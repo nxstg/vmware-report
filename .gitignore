@@ -52,3 +52,6 @@ desktop.ini
 # Windows関連
 $RECYCLE.BIN/
 *.lnk
+
+# Clineルールファイル
+.clinerules
