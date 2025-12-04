@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    VMware Report Generator v1.2.0
+    VMware Report Generator v1.2.1
 
 .DESCRIPTION
     vCenter環境のレポートを生成するモダンなPowerShellスクリプト
@@ -50,7 +50,7 @@
     ./vm-dailyreport-new.ps1 -ConfigFile ./my-config.json
 
 .NOTES
-    Version: 1.2.0
+    Version: 1.2.1
     Author: VMware Report Team
     Requires: VMware.PowerCLI or VCF.PowerCLI module
 #>
@@ -84,7 +84,7 @@ param(
 #Requires -Version 5.1
 
 # スクリプトのバージョン
-$ScriptVersion = "1.2.0"
+$ScriptVersion = "1.2.1"
 
 # エラーアクションの設定
 $ErrorActionPreference = "Stop"
