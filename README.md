@@ -1,4 +1,4 @@
-# VMware Report Generator v1.2.0
+# VMware Report Generator
 
 [![Code Quality](https://github.com/nxstg/vmware-report/actions/workflows/code-quality.yml/badge.svg)](https://github.com/nxstg/vmware-report/actions/workflows/code-quality.yml)
 [![Security Scan](https://github.com/nxstg/vmware-report/actions/workflows/security-scan.yml/badge.svg)](https://github.com/nxstg/vmware-report/actions/workflows/security-scan.yml)
